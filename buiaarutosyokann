@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>VR図書館</title>
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+
+
+  <style>
+
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+
+    /* 現在地表示 */
+
+    #info {
+
+      position: fixed;
+
+      top: 15px;
+      left: 15px;
+
+      z-index: 10;
+
+      background: rgba(0, 0, 0, 0.7);
+
+      color: white;
+
+      padding: 10px 18px;
+
+      border-radius: 10px;
+
+      font-size: 20px;
+
+    }
+
+
+    /* 移動ボタン */
+
+    #controls {
+
+      position: fixed;
+
+      bottom: 25px;
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      z-index: 10;
+
+      display: flex;
+
+      gap: 10px;
+
+      flex-wrap: wrap;
+
+      justify-content: center;
+
+      width: 90%;
+
+    }
+
+
+    button {
+
+      font-size: 18px;
+
+      padding: 12px 22px;
+
+      border: none;
+
+      border-radius: 10px;
+
+      background: white;
+
+      cursor: pointer;
+
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+
+    }
+
+
+    button:hover {
+
+      background: #eeeeee;
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+  <!-- 現在地 -->
+
+  <div id="info">
+    現在地：A
+  </div>
+
+
+
+  <!-- 移動ボタン -->
+
+  <div id="controls"></div>
+
+
+
+  <!-- VR空間 -->
+
+  <a-scene>
+
+    <a-sky
+      id="sky"
+      src="A.jpg"
+      rotation="0 -90 0">
+    </a-sky>
+
+  </a-scene>
+
+
+
+  <script>
+
+
+    /*
+    ========================================
+    VR図書館　移動ルート
+    ========================================
+    */
+
+
+    const connections = {
+
+
+      /* --------------------
+         通路
+      -------------------- */
+
+      A: ["B"],
+
+      B: ["A", "C"],
+
+      C: ["B", "1 low", "35"],
+
+      35:["34", "C"],
+
+      34:["P", "35"],
+
+      D:["3 low", "E"],
+
+      E: ["D", "4"],
+
+      4:["E", "5"],
+
+      5:["4", "6"],
+
+      6:["5", "7"],
+
+      7:["6", "8"],
+
+      8:["7", "9"],
+
+      9:["8", "10"],
+
+      10:["9", "G"],
+
+      11:["G", "12"],
+
+      12:["11", "13"],
+
+      13:["12", "H"],
+
+      14:["I", "15"],
+
+      15:["14", "16"],
+
+      16:["15", "17"],
+
+      17:["16", "J"],
+
+      18:["J", "19"],
+
+      19:["18", "20", "45"],
+
+      45:["19", "N"],
+
+      20:["19", "21"],
+
+      21:["20", "22"],
+
+      22:["21", "23"],
+
+      23:["22", "L"],
+
+      24:["L", "25"],
+
+      25:["24", "26"],
+
+      26:["25", "M"],
+
+      27:["M", "28"],
+
+      28:["27", "N"],
+
+      29:["N", "30"],
+
+      30:["29", "31"],
+
+      36:["O", "37"],
+
+      37:["36", "39"],
+
+      39:["37", "38"],
+
+      38:["39", "O"],
+
+      31:["O", "30"],
+
+      32:["O", "33"],
+
+      33:["32", "P"],
+
+      "40 low":["P", "40 high", "41 low"],
+
+      "40 high":["40 low"],
+
+      "41 low":["40 low", "41 high", "42 low"],
+
+      "41 high":["41 low"],
+
+      "42 low":["41 low", "42 high", "43 low"],
+
+      "42 high":["42 low"],
+
+      "43 low":["42 low", "43 high", "44 low"], 
+
+      "43 high":["43 low"],
+
+      "44 low":["43 low", "44 high", "P"],
+
+      "44 high":["44 low"],
+
+      G: ["10", "11"],
+
+      H: ["13", "I"],
+
+      I: ["H", "14"],
+
+      J: ["17", "18"],
+
+      L: ["23", "24"],
+
+      M: ["26", "27"],
+
+      N: ["45", "28", "29"],
+
+      O: ["32", "31", "36 ","38"],
+
+      P: ["33", "40 low", "34", "44 low"],
+
+
+      /* --------------------
+         数字の場所
+      -------------------- */
+
+      "1 low": ["C", "1 high", "2 low"],
+
+      "1 high": ["1 low"],
+       
+      "2 low": ["1 low", "2 high", "3 low"],
+
+      "2 high": ["2 low"],
+      
+      "3 low": ["2 low", "3 high", "D"],
+
+      "3 high": ["3 low"],
+
+    };
+
+
+
+    /*
+    ========================================
+    写真ファイルの設定
+    ========================================
+    */
+
+    const photoFiles = {
+
+
+      /* アルファベット */
+
+      A: "A.jpg",
+
+      B: "B.jpg",
+
+      C: "C.jpg",
+
+      D: "D.jpg",
+
+      E: "E.jpg",
+
+      F: "F.jpg",
+
+      G: "G.jpg",
+
+      H: "H.jpg",
+
+      I: "I.jpg",
+
+      J: "J.jpg",
+
+      K: "K.jpg",
+
+      L: "L.jpg",
+
+      M: "M.jpg",
+
+      N: "N.jpg",
+
+      O: "O.jpg",
+
+      P: "P.jpg",
+
+      "4": "4.jpg",
+
+      "5": "5.jpg",
+
+      "6": "6.jpg",
+
+      "7": "7.jpg",
+
+      "8": "8.jpg",
+
+      "9": "9.jpg",
+
+      "10": "10.jpg",
+
+      "11": "11.jpg",
+
+      "12": "12.jpg",
+
+      "13": "13.jpg",
+
+      "14": "14.jpg",
+
+      "15": "15.jpg",
+
+      "16": "16.jpg",
+
+      "17": "17.jpg",
+
+      "18": "18.jpg",
+
+      "19": "19.jpg",
+
+      "20": "20.jpg",
+
+      "21": "21.jpg",
+
+      "22": "22.jpg",
+
+      "23": "23.jpg",
+
+      "24": "24.jpg",
+
+      "25": "25.jpg",
+
+      "26": "26.jpg",
+
+      "27": "27.jpg",
+
+      "28": "28.jpg",
+
+      "29": "29.jpg",
+
+      "30": "30.jpg",
+
+      "31": "31.jpg",
+
+      "32": "32.jpg",
+
+      "33": "33.jpg",
+
+      "34": "34.jpg",
+
+      "35": "35.jpg",
+
+      "36": "36.jpg",
+
+      "37": "37.jpg",
+
+      "38": "38.jpg",
+
+      "39": "39.jpg",
+
+      "45": "45.jpg",
+
+      "1 low": "1 low.jpg",
+
+      "1 high": "1 high.jpg",
+
+      "2 low": "2 low.jpg",
+
+      "2 high": "2 high.jpg",
+
+      "3 low": "3 low.jpg",
+
+      "3 high": "3 high.jpg",
+
+      "40 low": "40 low.jpg",
+
+      "40 high": "40 high.jpg",
+
+      "41 low": "41 low.jpg",
+
+      "41 high": "41 high.jpg",
+
+      "42 low": "42 low.jpg",
+
+      "42 high": "42 high.jpg",
+
+      "43low": "43 low.jpg",
+
+      "43 high": "43 high.jpg",
+
+      "44 low": "44 low.jpg",
+
+      "44 high": "44 high.jpg"
+
+    };
+
+
+
+    /*
+    ========================================
+    現在地
+    ========================================
+    */
+
+    let currentPlace = "A";
+
+
+
+    /*
+    ========================================
+    写真を変更する
+    ========================================
+    */
+
+    function changePlace(place) {
+
+
+      currentPlace = place;
+
+
+      /* 写真ファイルを取得 */
+
+      const photo = photoFiles[place];
+
+
+      /* 360°写真を変更 */
+
+      document
+        .querySelector("#sky")
+        .setAttribute("src", photo);
+
+
+      /* 現在地表示 */
+
+      document
+        .querySelector("#info")
+        .textContent = getPlaceName(place);
+
+
+      /* ボタンを更新 */
+
+      createButtons();
+
+    }
+
+
+
+    /*
+    ========================================
+    現在地の表示名
+    ========================================
+    */
+
+    function getPlaceName(place) {
+
+
+      if (place === "1 low") {
+
+        return "現在地：1（下側）";
+
+      }
+
+
+      if (place === "1 high") {
+
+        return "現在地：1（上側）";
+
+      }
+
+
+        if (place === "2 low") {
+
+        return "現在地：2（下側）";
+
+      }
+
+
+      if (place === "2 high") {
+
+        return "現在地：2（上側）";
+
+      }
+
+
+
+        if (place === "3 low") {
+
+        return "現在地：3（下側）";
+
+      }
+
+
+      if (place === "3 high") {
+
+        return "現在地：3（上側）";
+
+      }
+
+
+
+        if (place === "40 low") {
+
+        return "現在地：40（下側）";
+
+      }
+
+
+      if (place === "40 high") {
+
+        return "現在地：40（上側）";
+
+      }  if (place === "41 low") {
+
+        return "現在地：41（下側）";
+
+      }
+
+
+      if (place === "41 high") {
+
+        return "現在地：41（上側）";
+
+      }  if (place === "42 low") {
+
+        return "現在地：42（下側）";
+
+      }
+
+
+      if (place === "42 high") {
+
+        return "現在地：42（上側）";
+
+      }  if (place === "43 low") {
+
+        return "現在地：43（下側）";
+
+      }
+
+
+      if (place === "43 high") {
+
+        return "現在地：43（上側）";
+
+      }  if (place === "44 low") {
+
+        return "現在地：44（下側）";
+
+      }
+
+
+      if (place === "44 high") {
+
+        return "現在地：44（上側）";
+
+      }
+
+      return "現在地：" + place;
+
+    }
+
+
+
+    /*
+    ========================================
+    移動ボタンを作る
+    ========================================
+    */
+
+    function createButtons() {
+
+
+      const controls =
+        document.querySelector("#controls");
+
+
+      /* ボタンをいったん全部消す */
+
+      controls.innerHTML = "";
+
+
+      /* 現在地から行ける場所 */
+
+      const destinations =
+        connections[currentPlace];
+
+
+      /* ボタンを作る */
+
+      destinations.forEach(function(place) {
+
+
+        const button =
+          document.createElement("button");
+
+
+        button.textContent =
+          "➡ " + getButtonName(place);
+
+
+        button.onclick = function() {
+
+          changePlace(place);
+
+        };
+
+
+        controls.appendChild(button);
+
+
+      });
+
+    }
+
+
+
+    /*
+    ========================================
+    ボタンの表示名
+    ========================================
+    */
+
+    function getButtonName(place) {
+
+
+      if (place === "1 low") {
+
+        return "1（下側）";
+
+      }
+
+
+      if (place === "1 high") {
+
+        return "1（上側）";
+
+      }
+
+              if (place === "2 low") {
+
+        return "2（下側）";
+
+      }
+
+
+      if (place === "2 high") {
+
+        return "2（上側）";
+
+      }
+
+
+
+        if (place === "3 low") {
+
+        return "3（下側）";
+
+      }
+
+
+      if (place === "3 high") {
+
+        return "3（上側）";
+
+      }
+
+
+
+        if (place === "40 low") {
+
+        return "40（下側）";
+
+      }
+
+
+      if (place === "40 high") {
+
+        return "40（上側）";
+
+      }  if (place === "41 low") {
+
+        return "41（下側）";
+
+      }
+
+
+      if (place === "41 high") {
+
+        return "41（上側）";
+
+      }  if (place === "42 low") {
+
+        return "42（下側）";
+
+      }
+
+
+      if (place === "42 high") {
+
+        return "42（上側）";
+
+      }  if (place === "43 low") {
+
+        return "43（下側）";
+
+      }
+
+
+      if (place === "43 high") {
+
+        return "43（上側）";
+
+      }  if (place === "44 low") {
+
+        return "44（下側）";
+
+      }
+
+
+      if (place === "44 high") {
+
+        return "44（上側）";
+
+      }
+
+
+      return place + "へ";
+
+    }
+
+
+
+    /*
+    ========================================
+    最初のボタンを作る
+    ========================================
+    */
+
+    createButtons();
+
+
+  </script>
+
+
+</body>
+
+</html>
